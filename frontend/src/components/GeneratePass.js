@@ -1,97 +1,113 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const GeneratePass = () => {
   const location = useLocation();
-  const { eventImage, uploadedImage, participantName } = location.state || {}; // Get the name from the state
+  const { eventImage, uploadedImage, participantName, regions } = location.state || {};
+
+  // State to manage regions loading status
+  const [isLoadingRegions, setIsLoadingRegions] = useState(true);
+
+  useEffect(() => {
+    if (regions && regions.length > 0) {
+      setIsLoadingRegions(false);  // If regions exist, stop loading
+    } else {
+      setIsLoadingRegions(true);  // Keep loading if regions are not passed
+    }
+  }, [regions]);
+
+  // Show loading message if regions are not loaded
+  if (isLoadingRegions) {
+    return <p>Loading event regions...</p>;
+  }
+
+  // Default message when there is no uploaded image or event image
+  const defaultImageMessage = "No image available";
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>Generate Your Event Pass</h1>
+    <div className="generate-pass-container" style={{ position: 'relative' }}>
+      <h1>Event Participation Pass</h1>
 
-      {eventImage && (
-        <div style={styles.overlayContainer}>
-          {/* Base Event Image */}
+      <div className="event-image-container" style={{ position: 'relative' }}>
+        {eventImage ? (
           <img
             src={`http://localhost:5000/${eventImage}`}
             alt="Event"
-            style={styles.eventImage}
+            style={{
+              width: '100%',
+              height: 'auto',
+              position: 'relative',
+              zIndex: 1,
+            }}
           />
+        ) : (
+          <p>{defaultImageMessage}</p>
+        )}
 
-          {/* Black Circle */}
-          <div style={styles.blackCircle}>
-            {/* Uploaded Image inside the Black Circle */}
-            {uploadedImage && (
-              <img
-                src={uploadedImage}
-                alt="Uploaded"
-                style={styles.uploadedImage}
-              />
-            )}
-          </div>
+        {regions && regions.length > 0 ? (
+          regions.map((region, index) => {
+            if (!region.coordinates) {
+              console.warn(`Region ${index} is missing coordinates.`);
+              return null;
+            }
 
-          {/* Display the participant's name on the image */}
-          {participantName && <div style={styles.participantName}>{participantName}</div>}
-        </div>
-      )}
-    </div>
+            const { x, y, width, height } = region.coordinates;
+            const isCircle = region.type === 'circle';
+
+            return (
+              <div
+                key={index}
+                className="region"
+                style={{
+                  position: 'absolute',
+                  top: y,
+                  left: x,
+                  width: width,
+                  height: height,
+                  border: isCircle ? '2px solid #000' : 'none',
+                  borderRadius: isCircle ? '50%' : '0%',
+                  overflow: 'hidden',
+                  zIndex: 2,
+                }}
+              >
+                {/* Handle uploaded participant photo */}
+                {index === 0 ? (
+                  uploadedImage ? (
+                    <img
+                      src={uploadedImage}
+                      alt="Uploaded Participant"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <p>{defaultImageMessage}</p>
+                  )
+                ) : index === 1 ? (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor: 'white',
+                    }}
+                  >
+                    <p>{participantName || "No participant name"}</p>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })
+        ) : (
+          <p>No regions available for this event.</p>
+        )}
+      </div>
+    </div> 
   );
 };
 
-// Styles for the component
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    marginBottom: '20px',
-  },
-  overlayContainer: {
-    position: 'relative',
-    width: '500px',
-    height: 'auto',
-  },
-  eventImage: {
-    width: '100%',
-    height: 'auto',
-    borderRadius: '10px',
-  },
-  blackCircle: {
-    position: 'absolute',
-    top: '62.4%',
-    left: '28.9%',
-    transform: 'translate(-50%, -50%)',
-    width: '100px',
-    height: '100px',
-    backgroundColor: 'black',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadedImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: '50%',
-    objectFit: 'cover',
-  },
-  participantName: {
-    position: 'absolute', // Positioning name on the image
-    top: '75%', // Adjust this value to position the name where you want
-    left: '28.9%',
-    transform: 'translateX(-50%)', // Center the name horizontally
-    fontSize: '0.9rem',
-    fontWeight: 'bold',
-    color: 'black',
-    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.11)', // Optional: adds a shadow to make the text stand out
-  },
-};
-
-export default GeneratePass;  
+export default GeneratePass;
