@@ -9,13 +9,14 @@ const Home = () => {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
+    // Fetch events from the backend
     axios
       .get('http://localhost:5000/api/events')
       .then((response) => {
         setEvents(response.data.events);
       })
       .catch((error) => {
-        console.error('There was an error fetching events:', error);
+        console.error('Error fetching events:', error);
       });
   }, []);
 
@@ -33,70 +34,171 @@ const Home = () => {
     }
   };
 
+  // Function to handle update
   const handleUpdate = (event) => {
     navigate('/update-event', { state: { event } });
   };
 
+  // Function to handle image click
   const handleImageClick = (event) => {
     if (loginType === 'user') {
       navigate('/participate', { state: { event } });
     }
   };
 
-  const handleEventUpdate = (updatedEvent) => {
-    setEvents(events.map((event) => (event._id === updatedEvent._id ? updatedEvent : event)));
-  };
-
   return (
-    <div className="page-content flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h2 className="text-4xl font-bold text-gray-800 mb-4">Welcome to ZAVA</h2>
-      <div className="event-list mt-8">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '131.2%',
+          objectFit: 'cover',
+          zIndex: '-1',
+        }}
+      >
+        <source src="https://assets.mixkit.co/videos/186/186-720.mp4" type="video/mp4" />
+      </video>
+
+      {/* Events Section */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '20px',
+          width: '100%',
+          maxWidth: '300px',
+          height: '400px',
+          padding: '40px 20px',
+          zIndex: '1', // Content goes on top of the video
+        }}
+      >
         {events.length === 0 ? (
-          <p className="text-gray-500">No events available at the moment.</p>
+          <p
+            style={{
+              color: '#666',
+              fontSize: '1.2rem',
+              textAlign: 'center',
+            }}
+          >
+            No events available at the moment.
+          </p>
         ) : (
           events.map((event) => (
             <div
               key={event._id}
-              className="event-item mb-6 p-4 bg-white rounded-lg shadow-md relative group"
+              style={{
+                position: 'relative',
+                width: '350px',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                borderRadius: '8px',
+                padding: '20px',
+                margin: '20px',
+                textAlign: 'center',
+                boxShadow: '0 10px 20px rgba(0, 0, 0, 0.2)',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+              }}
+              onMouseOver={(e) => (e.target.style.transform = 'scale(1.03)')}
+              onMouseOut={(e) => (e.target.style.transform = 'scale(1)')}
             >
-              <img
-                src={`http://localhost:5000/${event.photo}`}
-                alt={event.title}
-                className="event-image mb-4 w-full object-contain rounded-md cursor-pointer"
+              {/* Event Image */}
+              <div
                 style={{
-                  maxWidth: '400px',  // Set the max width of the image
-                  maxHeight: '300px', // Set the max height of the image
-                  width: 'auto',      // Ensure it scales proportionally
-                  height: 'auto',     // Ensure it scales proportionally
+                  width: '100%',
+                  height: '250px',
+                  overflow: 'hidden',
+                  borderRadius: '8px',
+                  marginBottom: '16px',
+                  position: 'relative',
                 }}
-                onClick={() => handleImageClick(event)}
-              />
-              <h3 className="text-2xl font-semibold text-gray-800">{event.title}</h3>
-              <p className="text-gray-600 mt-2">{event.description}</p>
-              {event.regions.length > 0 && (
-                <div className="regions mt-4">
-                  <h4 className="text-lg font-medium text-gray-700">Regions:</h4>
-                  <ul className="list-disc pl-6">
-                    {event.regions.map((region, index) => (
-                      <li key={index} className="text-gray-600">
-                        <span>Type: {region.type}</span>, <span>Color: {region.color}</span>, <span>Position: ({region.x}, {region.y})</span>, <span>Size: {region.width}x{region.height}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
+              >
+                <img
+                  src={`http://localhost:5000/${event.photo}`}
+                  alt={event.title}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '30px',
+                    transition: 'transform 0.3s ease-in-out',
+                  }}
+                  onClick={() => handleImageClick(event)}
+                  onMouseOver={(e) => (e.target.style.transform = 'scale(1.05)')}
+                  onMouseOut={(e) => (e.target.style.transform = 'scale(1)')}
+                />
+              </div>
+              {/* Event Title */}
+              <h3
+                style={{
+                  fontSize: '1.8rem',
+                  fontWeight: 'bold',
+                  color: '#ffffff',
+                  marginBottom: '8px',
+                }}
+              >
+                {event.title}
+              </h3>
+              {/* Event Description */}
+              <p
+                style={{
+                  fontSize: '1rem',
+                  color: '#ffffff',
+                  marginBottom: '12px',
+                  paddingHorizontal: '10px',
+                }}
+              >
+                {event.description}
+              </p>
+              {/* Admin Buttons */}
               {loginType === 'admin' && (
-                <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div>
                   <button
-                    className="bg-red-600 text-white px-4 py-2 rounded-md m-2"
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '6px',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: '##D3D3D3',
+                      color: '#333333',
+                      marginRight: '10px',
+                      transition: 'background 0.3s ease',
+                    }}
                     onClick={() => handleDelete(event._id)}
+                    onMouseOver={(e) => (e.target.style.background = '##D3D3D3')}
+                    onMouseOut={(e) => (e.target.style.background = '##D3D3D3')}
                   >
                     Delete
                   </button>
                   <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md m-2"
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '6px',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: '##D3D3D3',
+                      color: '#333333',
+                      transition: 'background 0.3s ease',
+                    }}
                     onClick={() => handleUpdate(event)}
+                    onMouseOver={(e) => (e.target.style.background = '##D3D3D3')}
+                    onMouseOut={(e) => (e.target.style.background = '##D3D3D3')}
                   >
                     Update
                   </button>

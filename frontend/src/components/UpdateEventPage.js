@@ -179,6 +179,22 @@ const UpdateEventPage = () => {
       <h1>{eventToUpdate ? "Update Event" : "Add New Event"}</h1>
       {errorMessage && <p className="error-message">{errorMessage}</p>}
       {successMessage && <p className="success-message">{successMessage}</p>}
+      <video
+        autoPlay
+        loop
+        muted
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '163.2%',
+          objectFit: 'cover',
+          zIndex: '-1',
+        }}
+      >
+        <source src="https://assets.mixkit.co/videos/186/186-720.mp4" type="video/mp4" />
+      </video>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -194,18 +210,18 @@ const UpdateEventPage = () => {
         </div>
 
         {imagePreview && (
-          <div
-            className="image-container"
-            style={{
-              position: "relative",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              marginTop: "20px",
-              width: "auto",
-              height: "auto",
-            }}
-          >
+           <div
+           className="image-container"
+           style={{
+             position: "relative",
+             display: "flex",
+             justifyContent: "center",
+             alignItems: "center",
+             marginTop: "20px",
+             width: "500px",
+             height: "500px",
+           }}
+         >
             <img
               src={imagePreview}
               alt="Event Preview"

@@ -489,6 +489,22 @@ const UpdateEventPage = () => {
 
   return (
     <div className="update-event-container">
+      <video
+        autoPlay
+        loop
+        muted
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '163.2%',
+          objectFit: 'cover',
+          zIndex: '-1',
+        }}
+      >
+        <source src="https://assets.mixkit.co/videos/186/186-720.mp4" type="video/mp4" />
+      </video>
       <h1>{eventToUpdate ? "Update Event" : "Add New Event"}</h1>
       {errorMessage && <p className="error-message">{errorMessage}</p>}
       {successMessage && <p className="success-message">{successMessage}</p>}
@@ -515,16 +531,16 @@ const UpdateEventPage = () => {
               justifyContent: "center",
               alignItems: "center",
               marginTop: "20px",
-              width: "auto",
-              height: "auto",
+              width: "500px",
+              height: "500px",
             }}
           >
             <img
               src={imagePreview}
               alt="Event Preview"
               style={{
-                width: "100%",
-                height: "auto",
+                width: "500px",
+                height: "500px",
                 maxWidth: "600px",
                 objectFit: "contain",
                 display: "block",

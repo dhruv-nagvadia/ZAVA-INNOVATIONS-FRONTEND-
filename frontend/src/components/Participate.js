@@ -1,7 +1,13 @@
 
-// import React, { useState, useEffect } from 'react';
+// import React, { useState, useEffect, useRef } from 'react';
 // import axios from 'axios';
 // import { useNavigate, useLocation } from 'react-router-dom';
+// import html2canvas from 'html2canvas';
+// import jsPDF from 'jspdf';
+// import Cropper from 'react-cropper';
+// import 'cropperjs/dist/cropper.css';
+// import html2pdf from 'html2pdf.js';
+
 
 // const Participate = () => {
 //   const [eventData, setEventData] = useState({
@@ -13,11 +19,29 @@
 //   const [successMessage, setSuccessMessage] = useState('');
 //   const [updatedRegions, setUpdatedRegions] = useState([]);
 //   const [participants, setParticipants] = useState([]);
+//   const [croppedImage, setCroppedImage] = useState(null);
+//   const [croppedImageId, setCroppedImageId] = useState(null);
+//   const [imgpath, setpath] = useState(null);
+//   const [isCropperVisible, setIsCropperVisible] = useState(false);
 //   const navigate = useNavigate();
 //   const location = useLocation();
-
-//   const { event } = location.state || {}; // Extract event and regions
+//   const [imageSize, setImageSize] = useState({ width: 500, height: 500 });
+//   const imageRef = useRef(null);;
+//   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+//   const imageContainerRef = useRef(null); // Reference for the region to be captured
+//   const pdfContainerRef = useRef(null); // Reference for the PDF download button
+//   const { event } = location.state || {};
 //   const eventId = event ? event._id : '';
+//   const cropperRef = useRef(null);
+//   const container = imageContainerRef.current;
+//   if (container) {
+//     const containerWidth = container.clientWidth;
+//     const containerHeight = container.clientHeight;
+//     // Proceed with the logic
+//   }
+
+  
+  
 
 //   const handleChange = (e) => {
 //     const { name, value } = e.target;
@@ -33,6 +57,18 @@
 //       ...prevData,
 //       photo: file,
 //     }));
+//     setIsCropperVisible(true);
+//   };
+
+//   const handleImageCrop = () => {
+//     const cropper = cropperRef.current.cropper;
+//     setCroppedImage(cropper.getCroppedCanvas().toDataURL());
+//     setIsCropperVisible(false);
+//     setSuccessMessage('Image cropped successfully!');
+//   };
+
+//   const handleRegionSelect = (regionId) => {  
+//     setCroppedImageId(regionId);
 //   };
 
 //   const handleSubmit = async (e) => {
@@ -43,8 +79,13 @@
 //     const formData = new FormData();
 //     formData.append('fullName', eventData.fullName);
 //     formData.append('contactNo', eventData.contactNo);
-//     formData.append('photo', eventData.photo);
-//     formData.append('eventId', eventId); // Add eventId to the form data
+//     if (croppedImage) {
+//       const blob = base64ToBlob(croppedImage, 'image/jpeg');
+//       formData.append('photo', blob, 'cropped-image.jpg');
+//     } else {
+//       formData.append('photo', eventData.photo);
+//     }
+//     formData.append('eventId', eventId);
 
 //     try {
 //       const response = await axios.post('http://localhost:5000/api/participate', formData, {
@@ -55,8 +96,10 @@
 
 //       if (response.data.success) {
 //         setSuccessMessage('Participant added successfully!');
-//         setUpdatedRegions(response.data.updatedEvent.regions); // Update regions dynamically
-//         setParticipants([...participants, response.data.participant]); // Add participant to the list
+//         setUpdatedRegions(response.data.updatedEvent.regions);
+//         setParticipants([...participants, response.data.participant]);
+//         const participantPhotoPath = response.data.participant.photo;
+//         setpath("http://localhost:5000" + participantPhotoPath);
 //       } else {
 //         setErrorMessage(response.data.message || 'Failed to add participant. Please try again.');
 //       }
@@ -65,155 +108,260 @@
 //     }
 //   };
 
-//   return (
-//     <div className="add-event-container">
-//       <h1>Participate</h1>
-//       {errorMessage && <p className="error-message">{errorMessage}</p>}
-//       {successMessage && <p className="success-message">{successMessage}</p>}
+//   const base64ToBlob = (base64Data, contentType) => {
+//     const byteCharacters = atob(base64Data.split(',')[1]);
+//     const byteArrays = [];
+//     for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+//       const slice = byteCharacters.slice(offset, offset + 512);
+//       const byteNumbers = new Array(slice.length);
+//       for (let i = 0; i < slice.length; i++) {
+//         byteNumbers[i] = slice.charCodeAt(i);
+//       }
+//       byteArrays.push(new Uint8Array(byteNumbers));
+//     }
+//     return new Blob(byteArrays, { type: contentType });
+//   };
 
-//       <form onSubmit={handleSubmit}>
-//         <div className="form-group">
-//           <label htmlFor="photo">Add Photo:</label>
-//           <input
-//             type="file"
-//             id="photo"
-//             name="photo"
-//             accept="image/*"
-//             onChange={handleFileChange}
-//             required
-//           />
-//         </div>
+//   const handleDownloadPDF = () => {
+//     const element = imageContainerRef.current;
+  
+//     // Force the element to have a width of 500px for PDF download
+//     const originalWidth = element.offsetWidth;
+//     element.style.width = '500px'; // Set the width to the max width (500px)
+  
+//     // Ensure the image is resized according to the new width (500px)
+//     const img = element.querySelector('img');
+//     if (img) {
+//       img.style.width = '100%'; // Ensure the image resizes correctly
+//       img.style.height = 'auto'; // Keep the aspect ratio intact
+//     }
+  
+//     // Now capture the content as a PDF
+//     html2pdf()
+//       .from(element)
+//       .set({
+//         margin: 0,
+//         filename: 'image-region.pdf',
+//         html2canvas: {
+//           scale: 2,  // Adjust scale for better resolution
+//           logging: true,
+//           useCORS: true,
+//           allowTaint: true,
+//           width: 500,  // Force the width to 500px
+//           height: element.offsetHeight, // Capture the element height based on the content
+//           x: 0,
+//           y: 0,
+//         },
+//         jsPDF: {
+//           unit: 'mm',
+//           format: 'a4',
+//           orientation: 'portrait',
+//           compress: true,
+//         }
+//       })
+//       .save();
+  
+//     // After the download, revert the element's width back to its original size
+//     element.style.width = `${originalWidth}px`;
+//   };
+  
+  
+// useEffect(() => {
+// const updateContainerSize = () => {
+//   if (imageContainerRef.current) {
+//     setContainerSize({
+//       width: imageContainerRef.current.offsetWidth,
+//       height: imageContainerRef.current.offsetHeight,
+//     });
+//   }
+// };
 
-//         <div className="form-group">
-//           <label htmlFor="fullName">Full Name:</label>
-//           <input
-//             type="text"
-//             id="fullName"
-//             name="fullName"
-//             value={eventData.fullName}
-//             onChange={handleChange}
-//             required
-//           />
-//         </div>
+// updateContainerSize(); // Initial size check
+// window.addEventListener("resize", updateContainerSize); // Update on window resize
 
-//         <div className="form-group">
-//           <label htmlFor="contactNo">Contact No:</label>
-//           <input
-//             type="text"
-//             id="contactNo"
-//             name="contactNo"
-//             value={eventData.contactNo}
-//             onChange={handleChange}
-//             required
-//           />
-//         </div>
+// return () => {
+//   window.removeEventListener("resize", updateContainerSize);
+// };
+// }, []); // Empty dependency array ensures this runs once after the initial render
 
-//         <button type="submit">Participate</button>
-//       </form>
 
-//       {event && updatedRegions && (
-//         <div
-//           className="image-container"
-//           style={{
-//             position: 'relative',
-//             marginTop: '20px',
-//             display: 'flex',
-//             justifyContent: 'center',
-//             alignItems: 'center',
-//           }}
-//         >
-//           <img
-//             src={`http://localhost:5000/${event.photo}`}
-//             alt={event.title}
-//             style={{
-//               width: '100%',
-//               height: 'auto',
-//               maxWidth: '600px', // Fixed image size, will not resize
-//               objectFit: 'contain', // Maintain aspect ratio
-//               display: 'block',
-//               position: 'relative',
-//             }}
-//           />
-//           {updatedRegions.map((region, index) => (
-//             <div
-//               key={index}
-//               style={{
-//                 position: 'absolute',
-//                 top: `${region.y}px`,
-//                 left: `${region.x}px`,
-//                 width: `${region.width}px`,
-//                 height: `${region.height}px`,
-//                 // border: `2px solid ${region.color}`,
-//                 borderRadius: region.shape === 'circle' ? '50%' : '0',
-//                 overflow: 'hidden', // Hide overflowing content
-//               }}
-//             >
-//               {region.type === 'photo' ? (
-//                 // Show photo if region type is "photo"
-//                 participants.map((participant, participantIndex) => (
-//                   <img
-//                     key={participantIndex}
-//                     src={`http://localhost:5000/uploads/participants/${participant.photo.split('/').pop()}`}
-//                     alt={participant.fullName}
-//                     style={{
-//                       position: 'absolute',
-//                       top: 0,
-//                       left: 0,
-//                       width: '100%',
-//                       height: '100%',
-//                       objectFit: 'cover', // Ensure the image fits the region without distortion
-//                     }}
-//                   />
-//                 ))
-//               ) : region.type === 'text' ? (
-//                 // Show full name if region type is "text"
-//                 participants.map((participant, participantIndex) => {
-//                   // Calculate the font size as a fraction of the region's width or height
-//                   const fontSize = Math.min(region.width, region.height) / 4; // You can adjust the denominator to control font size
-              
-//                   return (
-//                     <div
-//                       key={participantIndex}
-//                       style={{
-//                         position: 'absolute',
-//                         top: 0,
-//                         left: 0,
-//                         width: '100%',
-//                         height: '100%',
-//                         display: 'flex',
-//                         justifyContent: 'center',
-//                         alignItems: 'center',
-//                         color: 'black', // Set the text color to black
-//                         fontSize: `${fontSize}px`, // Set dynamic font size based on region size
-//                         textAlign: 'center',
-//                       }}
-//                     >
-//                       {participant.fullName}
-//                     </div>
-//                   );
-//                 })
-//               ) : null}
-              
-              
-//             </div>
-//           ))}
-//         </div>
-//       )}
 
-//       <div>
-//         <h2>Participants</h2>
-//         {participants.length > 0 ? (
-//           participants.map((participant, index) => (
-//             <div key={index}>
-//               <p>{participant.fullName}</p>
-//             </div>
-//           ))
-//         ) : (
-//           <p>No participants yet.</p>
-//         )}
-//       </div>
-//     </div>
+// // Recalculate regions based on new image size
+// useEffect(() => {
+// if (imageSize.width && imageSize.height && updatedRegions.length > 0) {
+//   const updatedRegionSizes = updatedRegions.map((region) => {
+//     return {
+//       ...region,
+//       x: (region.x / 500) * imageSize.width,
+//       y: (region.y / 500) * imageSize.height,
+//       width: (region.width / 500) * imageSize.width,
+//       height: (region.height / 500) * imageSize.height,
+//     };
+//   });
+
+//   // Only update state if the region sizes have actually changed
+//   const hasChanges = !updatedRegionSizes.every(
+//     (region, index) =>
+//       region.x === updatedRegions[index]?.x &&
+//       region.y === updatedRegions[index]?.y &&
+//       region.width === updatedRegions[index]?.width &&
+//       region.height === updatedRegions[index]?.height
 //   );
+
+//   if (hasChanges) {
+//     setUpdatedRegions(updatedRegionSizes); // Update regions based on new image size
+//   }
+// }
+// }, [imageSize, updatedRegions]); // Ensure this is only triggered by changes in imageSize or updatedRegions
+
+// return (
+// <div className="add-event-container">
+//   <h1>Participate</h1>
+//   {errorMessage && <p className="error-message">{errorMessage}</p>}
+//   {successMessage && <p className="success-message">{successMessage}</p>}
+
+//   <form onSubmit={handleSubmit}>
+//     <div className="form-group">
+//       <label htmlFor="photo">Add Photo:</label>
+//       <input
+//         type="file"
+//         id="photo"
+//         name="photo"
+//         accept="image/*"
+//         onChange={handleFileChange}
+//         required
+//       />
+//     </div>
+
+//     {eventData.photo && isCropperVisible && (
+//       <div className="cropper-container">
+//         <Cropper
+//           src={URL.createObjectURL(eventData.photo)}
+//           style={{ width: "100%", height: "400px" }}
+//           initialAspectRatio={1}
+//           guides={false}
+//           ref={cropperRef}
+//         />
+//         <button type="button" onClick={handleImageCrop}>
+//           Crop Image
+//         </button>
+//       </div>
+//     )}
+
+//     <div className="form-group">
+//       <label htmlFor="fullName">Full Name:</label>
+//       <input
+//         type="text"
+//         id="fullName"
+//         name="fullName"
+//         value={eventData.fullName}
+//         onChange={handleChange}
+//         required
+//       />
+//     </div>
+
+//     <div className="form-group">
+//       <label htmlFor="contactNo">Contact No:</label>
+//       <input
+//         type="text"
+//         id="contactNo"
+//         name="contactNo"
+//         value={eventData.contactNo}
+//         onChange={handleChange}
+//         required
+//       />
+//     </div>
+
+//     <button type="submit">Participate</button>
+//   </form>
+
+//   {updatedRegions && (
+//      <div
+//      ref={imageContainerRef}
+//      style={{
+//        position: "relative",  // Make sure this is set to 'relative'
+//        marginTop: "20px",
+//        display: "flex",
+//        alignItems: "center",
+//        width: "100%",
+//        maxWidth:"500px",
+//        height: "auto",  // Adjust the height automatically based on content
+//      }}
+//    >
+//      <img
+//        src={`http://localhost:5000/${event.photo}`}
+//        alt={event.title}
+//        style={{
+//          width: "100%",
+//          height: "auto",
+//          objectFit: "contain",
+//          display: "block",
+//        }}
+//      />
+//      {updatedRegions.map((region, index) => (
+//        <div
+//          key={index}
+//          style={{
+//            position: "absolute",
+//            top: `${(region.y / 500) * containerSize.height}px`,
+//            left: `${(region.x / 500) * containerSize.width}px`,
+//            width: `${(region.width / 500) * containerSize.width}px`,
+//            height: `${(region.height / 500) * containerSize.height}px`,
+//            borderRadius: region.shape === "circle" ? "50%" : "0",
+//            overflow: "hidden",
+//          }}
+//          onClick={() => handleRegionSelect(region.id)}
+//        >
+//          {region.type === "photo" ? (
+//            <img
+//              src={imgpath}
+//              alt="Cropped"
+//              style={{
+//                position: "absolute",
+//                top: 0,
+//                left: 0,
+//                width: "100%",
+//                height: "100%",
+//                objectFit: "cover",
+//              }}
+//            />
+//          ) : region.type === "text" ? (
+//            participants.map((participant, participantIndex) => {
+//              const fontSize = Math.min(region.width, region.height) / 4;
+//              return (
+//                <div
+//                  key={participantIndex}
+//                  className="participant-text"
+//                  style={{
+//                    position: "absolute",
+//                    top: 0,
+//                    left: 0,
+//                    width: "100%",
+//                    height: "100%",
+//                    display: "flex",
+//                    justifyContent: "center",
+//                    alignItems: "center",
+//                    color: "white",
+//                    fontSize: `${fontSize}px`,
+//                    textAlign: "center",
+//                  }}
+//                >
+//                  {participant.fullName}
+//                </div>
+//              );
+//            })
+//          ) : null}
+//        </div>
+//      ))}
+//    </div>     
+//   )}
+
+//     <div ref={pdfContainerRef} className="pdf-content" style={{ marginTop: "20px" }}>
+//       <button onClick={handleDownloadPDF}>Download PDF</button>
+//     </div>
+// </div>  
+// );
+
 // };
 
 // export default Participate;
@@ -223,8 +371,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Cropper from 'react-cropper'; // Import Cropper
-import 'cropperjs/dist/cropper.css'; // Import Cropper CSS
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import Cropper from 'react-cropper';
+import 'cropperjs/dist/cropper.css';
+import html2pdf from 'html2pdf.js';
+
 
 const Participate = () => {
   const [eventData, setEventData] = useState({
@@ -236,16 +388,29 @@ const Participate = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [updatedRegions, setUpdatedRegions] = useState([]);
   const [participants, setParticipants] = useState([]);
-  const [croppedImage, setCroppedImage] = useState(null); // State for cropped image
-  const [croppedImageId, setCroppedImageId] = useState(null); // Track which region is cropped
-  const [imgpath,setpath] = useState(null);
+  const [croppedImage, setCroppedImage] = useState(null);
+  const [croppedImageId, setCroppedImageId] = useState(null);
+  const [imgpath, setpath] = useState(null);
+  const [isCropperVisible, setIsCropperVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  const { event } = location.state || {}; // Extract event and regions
+  const [imageSize, setImageSize] = useState({ width: 500, height: 500 });
+  const imageRef = useRef(null);;
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const imageContainerRef = useRef(null); 
+  const pdfContainerRef = useRef(null); 
+  const { event } = location.state || {};
   const eventId = event ? event._id : '';
+  const cropperRef = useRef(null);
+  const [showThankYou, setShowThankYou] = useState(false);
+  const container = imageContainerRef.current;
+  if (container) {
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+  }
 
-  const cropperRef = useRef(null); // Reference for cropper instance
+  
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -261,55 +426,49 @@ const Participate = () => {
       ...prevData,
       photo: file,
     }));
+    setIsCropperVisible(true);
   };
 
   const handleImageCrop = () => {
-    const cropper = cropperRef.current.cropper; // Get cropper instance
-    setCroppedImage(cropper.getCroppedCanvas().toDataURL()); // Get cropped image as data URL
+    const cropper = cropperRef.current.cropper;
+    setCroppedImage(cropper.getCroppedCanvas().toDataURL());
+    setIsCropperVisible(false);
+    setSuccessMessage('Image cropped successfully!');
   };
 
-  const handleRegionSelect = (regionId) => {
-    setCroppedImageId(regionId); // Set the region where the image should be placed
+  const handleRegionSelect = (regionId) => {  
+    setCroppedImageId(regionId);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
-  
+
     const formData = new FormData();
     formData.append('fullName', eventData.fullName);
     formData.append('contactNo', eventData.contactNo);
     if (croppedImage) {
-      // Convert the cropped image (base64) to Blob
       const blob = base64ToBlob(croppedImage, 'image/jpeg');
       formData.append('photo', blob, 'cropped-image.jpg');
     } else {
       formData.append('photo', eventData.photo);
     }
-    formData.append('eventId', eventId); // Add eventId to the form data
-  
+    formData.append('eventId', eventId);
+
     try {
       const response = await axios.post('http://localhost:5000/api/participate', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       if (response.data.success) {
         setSuccessMessage('Participant added successfully!');
-        setUpdatedRegions(response.data.updatedEvent.regions); // Update regions dynamically
-        setParticipants([...participants, response.data.participant]); // Add participant to the list
-  
-        // Now update imgpath after response is successful
+        setUpdatedRegions(response.data.updatedEvent.regions);
+        setParticipants([...participants, response.data.participant]);
         const participantPhotoPath = response.data.participant.photo;
-        console.log(participantPhotoPath);
-        
-        setpath("http://localhost:5000" + participantPhotoPath); // Update imgpath state with the photo URL
-        console.log("Updated image path:", participantPhotoPath); // Check the value of the path
-        console.log(imgpath);
-        
-  
+        setpath("http://localhost:5000" + participantPhotoPath);
       } else {
         setErrorMessage(response.data.message || 'Failed to add participant. Please try again.');
       }
@@ -317,7 +476,7 @@ const Participate = () => {
       setErrorMessage(error.response?.data?.message || 'Error occurred. Please try again.');
     }
   };
-  
+
   const base64ToBlob = (base64Data, contentType) => {
     const byteCharacters = atob(base64Data.split(',')[1]);
     const byteArrays = [];
@@ -332,174 +491,284 @@ const Participate = () => {
     return new Blob(byteArrays, { type: contentType });
   };
 
-  useEffect(() => {
-    if (croppedImage && croppedImageId) {
-      setUpdatedRegions((prevRegions) =>
-        prevRegions.map((region) =>
-          region.id === croppedImageId
-            ? { ...region, image: croppedImage } // Assign cropped image to the region
-            : region
-        )
-      );
+  const handleDownloadPDF = () => {
+    const element = imageContainerRef.current;
+  
+    
+    const originalWidth = element.offsetWidth;
+    element.style.width = '500px'; 
+  
+    const img = element.querySelector('img');
+    if (img) {
+      img.style.width = '100%'; 
+      img.style.height = 'auto';
     }
-  }, [croppedImage, croppedImageId]);
+  
+  
+    html2pdf()
+      .from(element)
+      .set({
+        margin: 0,
+        filename: 'image-region.pdf',
+        html2canvas: {
+          scale: 2, 
+          logging: true,
+          useCORS: true,
+          allowTaint: true,
+          width: 500,  
+          height: element.offsetHeight, 
+          x: 0,
+          y: 0,
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait',
+          compress: true,
+        }
+      })
+      .toPdf()
+      .get('pdf')
+      .then(() => {
 
-  return (
-    <div className="add-event-container">
-      <h1>Participate</h1>
-      {errorMessage && <p className="error-message">{errorMessage}</p>}
-      {successMessage && <p className="success-message">{successMessage}</p>}
+        setShowThankYou(true);
+        setTimeout(() => {
+          navigate('/home',{ state: { loginType: "user" } }); 
+        }, 2000);
+      })
+      .save();
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="photo">Add Photo:</label>
-          <input
-            type="file"
-            id="photo"
-            name="photo"
-            accept="image/*"
-            onChange={handleFileChange}
-            required
-          />
-        </div>
+    element.style.width = `${originalWidth}px`;
+};
+  
+useEffect(() => {
+const updateContainerSize = () => {
+  if (imageContainerRef.current) {
+    setContainerSize({
+      width: imageContainerRef.current.offsetWidth,
+      height: imageContainerRef.current.offsetHeight,
+    });
+  }
+};
 
-        {eventData.photo && (
-          <div className="cropper-container" style={{ marginTop: '20px' }}>
-            <Cropper
-              src={URL.createObjectURL(eventData.photo)} // Display the selected photo
-              style={{ width: '100%', height: '400px' }}
-              initialAspectRatio={1}
-              guides={false}
-              ref={cropperRef} // Reference for cropper
-            />
-            <button type="button" onClick={handleImageCrop}>
-              Crop Image
-            </button>
-          </div>
-        )}
+updateContainerSize(); 
+window.addEventListener("resize", updateContainerSize); 
 
-        <div className="form-group">
-          <label htmlFor="fullName">Full Name:</label>
-          <input
-            type="text"
-            id="fullName"
-            name="fullName"
-            value={eventData.fullName}
-            onChange={handleChange}
-            required
-          />
-        </div>
+return () => {
+  window.removeEventListener("resize", updateContainerSize);
+};
+}, []); 
 
-        <div className="form-group">
-          <label htmlFor="contactNo">Contact No:</label>
-          <input
-            type="text"
-            id="contactNo"
-            name="contactNo"
-            value={eventData.contactNo}
-            onChange={handleChange}
-            required
-          />
-        </div>
+useEffect(() => {
+if (imageSize.width && imageSize.height && updatedRegions.length > 0) {
+  const updatedRegionSizes = updatedRegions.map((region) => {
+    return {
+      ...region,
+      x: (region.x / 500) * imageSize.width,
+      y: (region.y / 500) * imageSize.height,
+      width: (region.width / 500) * imageSize.width,
+      height: (region.height / 500) * imageSize.height,
+    };
+  });
 
-        <button type="submit">Participate</button>
-      </form>
-
-      {event && updatedRegions && (
-        <div
-          className="image-container"
-          style={{
-            position: 'relative',
-            marginTop: '20px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <img
-            src={`http://localhost:5000/${event.photo}`}
-            alt={event.title}
-            style={{
-              width: '100%',
-              height: 'auto',
-              maxWidth: '600px',
-              objectFit: 'contain',
-              display: 'block',
-              position: 'relative',
-            }}
-          />
-          {updatedRegions.map((region, index) => (
-            <div
-              key={index}
-              style={{
-                position: 'absolute',
-                top: `${region.y}px`,
-                left: `${region.x}px`,
-                width: `${region.width}px`,
-                height: `${region.height}px`,
-                borderRadius: region.shape === 'circle' ? '50%' : '0',
-                overflow: 'hidden',
-              }}
-              onClick={() => handleRegionSelect(region.id)} // Select region on click
-            >
-              {region.type === 'photo'  ? (
-                <img
-                src={`${imgpath}`}
- // Show cropped image in region
-                  alt="Cropped"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              ) : region.type === 'text' ? (
-                participants.map((participant, participantIndex) => {
-                  const fontSize = Math.min(region.width, region.height) / 4;
-                  return (
-                    <div
-                      key={participantIndex}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        color: 'black',
-                        fontSize: `${fontSize}px`,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {participant.fullName}
-                    </div>
-                  );
-                })
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div>
-        <h2>Participants</h2>
-        {participants.length > 0 ? (
-          participants.map((participant, index) => (
-            <div key={index}>
-              <p>{participant.fullName}</p>
-            </div>
-          ))
-        ) : (
-          <p>No participants yet.</p>
-        )}
-      </div>
-    </div>
+  
+  const hasChanges = !updatedRegionSizes.every(
+    (region, index) =>
+      region.x === updatedRegions[index]?.x &&
+      region.y === updatedRegions[index]?.y &&
+      region.width === updatedRegions[index]?.width &&
+      region.height === updatedRegions[index]?.height
   );
+
+  if (hasChanges) {
+    setUpdatedRegions(updatedRegionSizes); 
+  }
+}
+}, [imageSize, updatedRegions]); 
+
+return (
+<div className="add-event-container">
+<video
+        autoPlay
+        loop
+        muted
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '163.2%',
+          objectFit: 'cover',
+          zIndex: '-1',
+        }}
+      >
+        <source src="https://assets.mixkit.co/videos/186/186-720.mp4" type="video/mp4" />
+      </video>
+  <h1>Participate</h1>
+  {errorMessage && <p className="error-message">{errorMessage}</p>}
+  {successMessage && <p className="success-message">{successMessage}</p>}
+
+  <form onSubmit={handleSubmit}>
+    <div className="form-group">
+      <label htmlFor="photo">Add Photo:</label>
+      <input
+        type="file"
+        id="photo"
+        name="photo"
+        accept="image/*"
+        onChange={handleFileChange}
+        required
+      />
+    </div>
+
+    {eventData.photo && isCropperVisible && (
+      <div className="cropper-container">
+        <Cropper
+          src={URL.createObjectURL(eventData.photo)}
+          style={{ width: "100%", height: "400px" }}
+          initialAspectRatio={1}
+          guides={false}
+          ref={cropperRef}
+        />
+        <button type="button" onClick={handleImageCrop}>
+          Crop Image
+        </button>
+      </div>
+    )}
+
+    <div className="form-group">
+      <label htmlFor="fullName">Full Name:</label>
+      <input
+        type="text"
+        id="fullName"
+        name="fullName"
+        value={eventData.fullName}
+        onChange={handleChange}
+        required
+      />
+    </div>
+
+    <div className="form-group">
+      <label htmlFor="contactNo">Contact No:</label>
+      <input
+        type="text"
+        id="contactNo"
+        name="contactNo"
+        value={eventData.contactNo}
+        onChange={handleChange}
+        required
+      />
+    </div>
+
+    <button type="submit">Participate</button>
+  </form>
+
+  {updatedRegions && (
+     <div
+     ref={imageContainerRef}
+     style={{
+       position: "relative",  
+       marginTop: "20px",
+       display: "flex",
+       alignItems: "center",
+       width: "100%",
+       maxWidth:"500px",
+       height: "auto",  
+     }}
+   >
+     <img
+       src={`http://localhost:5000/${event.photo}`}
+       alt={event.title}
+       style={{
+         width: "100%",
+         height: "auto",
+         objectFit: "contain",
+         display: "block",
+       }}
+     />
+     {updatedRegions.map((region, index) => (
+       <div
+         key={index}
+         style={{
+           position: "absolute",
+           top: `${(region.y / 500) * containerSize.height}px`,
+           left: `${(region.x / 500) * containerSize.width}px`,
+           width: `${(region.width / 500) * containerSize.width}px`,
+           height: `${(region.height / 500) * containerSize.height}px`,
+           borderRadius: region.shape === "circle" ? "50%" : "0",
+           overflow: "hidden",
+         }}
+         onClick={() => handleRegionSelect(region.id)}
+       >
+         {region.type === "photo" ? (
+           <img
+             src={imgpath}
+             alt="Cropped"
+             style={{
+               position: "absolute",
+               top: 0,
+               left: 0,
+               width: "100%",
+               height: "100%",
+               objectFit: "cover",
+             }}
+           />
+         ) : region.type === "text" ? (
+           participants.map((participant, participantIndex) => {
+             const fontSize = Math.min(region.width, region.height) / 4;
+             return (
+               <div
+                 key={participantIndex}
+                 className="participant-text"
+                 style={{
+                   position: "absolute",
+                   top: 0,
+                   left: 0,
+                   width: "100%",
+                   height: "100%",
+                   display: "flex",
+                   justifyContent: "center",
+                   alignItems: "center",
+                   color: "black",
+                   fontSize: `${fontSize}px`,
+                   textAlign: "center",
+                 }}
+               >
+                 {participant.fullName}
+               </div>
+             );
+           })
+         ) : null}
+       </div>
+     ))}
+   </div>     
+  )}
+   {showThankYou && (
+  <div 
+    style={{ 
+      position: "fixed", 
+      top: "50%", 
+      left: "50%", 
+      transform: "translate(-50%, -50%)", 
+      backgroundColor: "rgba(0, 0, 0, 0.8)", 
+      color: "white", 
+      padding: "20px", 
+      borderRadius: "10px", 
+      textAlign: "center", 
+      zIndex: 1000 
+    }}
+  >
+    <h2 style={{ marginBottom: "10px" }}>Thank You! 🎉</h2>
+    <p>Your PDF has been downloaded successfully.</p>
+  </div>
+)}
+
+    <div ref={pdfContainerRef} className="pdf-content" style={{ marginTop: "20px" }}>
+      <button onClick={handleDownloadPDF}>Download PDF</button>
+    </div>
+</div>  
+);
+
 };
 
 export default Participate;
